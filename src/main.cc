@@ -4,10 +4,11 @@
 
 #include <iostream>
 #include <memory>
-#include <thread>
+#include <thread>  // NOLINT [build/c++11]
 #include <vector>
 
-using namespace jigentec;
+using jigentec::Client;
+using jigentec::JigenTecPacket;
 
 int main(int argc, char **argv) {
   /// downloaded data with payload only.
@@ -21,7 +22,8 @@ int main(int argc, char **argv) {
     }
     auto &slot = data_collection[pack->seqence_number];
     slot.resize(pack->payload_length);
-    /// payload is immediately after JigenTecPacket since it is just a header structure.
+    /// payload is immediately after JigenTecPacket since it is just a header
+    /// structure.
     /// TODO: make clearer pointer to copy.
     std::memcpy(slot.data(), pack + sizeof(JigenTecPacket),
                 pack->payload_length);

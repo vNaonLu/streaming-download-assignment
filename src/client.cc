@@ -9,7 +9,7 @@
 
 #include <cassert>
 #include <iostream>
-#include <thread>
+#include <thread> // NOLINT [build/c++11]
 
 namespace jigentec {
 
@@ -26,7 +26,8 @@ class Client::Opaque {
 
   bool Connect(struct sockaddr_in *addr) {
     return is_connection_alive_ =
-               (IsValid() && ::connect(fd_, (sockaddr *)addr, sizeof(addr)));
+               (IsValid() && ::connect(fd_, reinterpret_cast<sockaddr *>(addr),
+                                       sizeof(addr)));
   }
 
   void Close() noexcept {
@@ -59,7 +60,7 @@ class Client::Opaque {
     }
 
     assert(nullptr != cb_);
-    cb_((JigenTecPacket *)buffer.get());
+    cb_(reinterpret_cast<JigenTecPacket *>(buffer.get()));
     return true;
   }
 
