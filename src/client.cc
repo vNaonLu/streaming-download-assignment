@@ -2,11 +2,14 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <jigentec/client.h>
+#include <jigentec/compile.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cassert>
 #include <iostream>
 #include <thread>  // NOLINT [build/c++11]
@@ -22,23 +25,70 @@ class Client::Opaque {
     }
 
     fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-    return IsValid();
+    if (IsValid()) {
+      status_.store(ConnectStatus::kNotConnect, std::memory_order_release);
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  bool Connect(struct sockaddr_in *addr) {
+  bool ConnectByHostname(std::string_view hostname, uint16_t port) {
+    hostent *he = ::gethostbyname(hostname.data());
+    if (nullptr == he) {
+      status_.store(ConnectStatus::kDestinationNotFound,
+                    std::memory_order_release);
+      return false;
+    }
+    sockaddr_in addr;
+    std::memset(&addr, 0, sizeof(addr));
+    std::memcpy(&addr.sin_addr, he->h_addr, he->h_length);
+    addr.sin_family = AF_INET;
+    addr.sin_port   = htons(port);
+    return Connect(reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+  }
+
+  bool Connect(struct sockaddr *addr, socklen_t length) {
     if (!IsValid()) {
       return false;
     }
-    client_fd_ =
-        ::connect(fd_, reinterpret_cast<sockaddr *>(addr), sizeof(sockaddr_in));
 
-    return client_fd_ >= 0;
+    int flag = ::fcntl(fd_, F_GETFL, 0);
+    ::fcntl(fd_, F_SETFL, flag | O_NONBLOCK);
+    ::connect(fd_, addr, length);
+
+    fd_set wfds;
+    FD_ZERO(&wfds);
+    FD_SET(fd_, &wfds);
+    /// wait up to 5 seconds.
+    auto tv    = timeval{0, 0};
+    tv.tv_sec  = 5;
+    tv.tv_usec = 0;
+
+    switch (::select(fd_ + 1, nullptr, &wfds, nullptr, &tv)) {
+      case -1:
+        status_.store(ConnectStatus::kUnknownError, std::memory_order_release);
+        break;
+
+      case 0:
+        status_.store(ConnectStatus::kConnectTimeout,
+                      std::memory_order_release);
+        break;
+
+      default:
+        status_.store(ConnectStatus::kConnecting, std::memory_order_release);
+        break;
+    }
+    ::fcntl(fd_, F_SETFL, flag);
+    return status_.load(std::memory_order_relaxed) ==
+           ConnectStatus::kConnecting;
   }
 
   void Close() noexcept {
-    if (client_fd_ >= 0) {
-      close(client_fd_);
-      client_fd_ = -1;
+    if (fd_ >= 0) {
+      close(fd_);
+      fd_ = -1;
+      status_.store(ConnectStatus::kNotConnect, std::memory_order_release);
     }
   }
 
@@ -54,14 +104,10 @@ class Client::Opaque {
     FD_ZERO(&rfds);
     FD_SET(fd_, &rfds);
 
-    /// TODO: select handle
     switch (::select(fd_ + 1, &rfds, nullptr, nullptr, &tv)) {
       case -1:
-        /// select failure
         [[fallthrough]];
       case 0:
-        /// timeout
-        /// regard as the finish of download.
         return false;
 
       default:
@@ -69,7 +115,6 @@ class Client::Opaque {
     }
 
     auto pack = JigenTecPacket{};
-
     if (FD_ISSET(fd_, &rfds) &&
         ::recv(fd_, pack.data(), sizeof(pack), MSG_PEEK) > 0) {
       uint32_t recv_length = 0;
@@ -79,13 +124,10 @@ class Client::Opaque {
         auto len =
             ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
         if (len <= 0) {
-          /// TODO: receiving failure or disconnect
           return false;
         }
         recv_length += len;
       }
-
-      assert(nullptr != cb_);
       cb_(&pack);
       return true;
     } else {
@@ -93,82 +135,65 @@ class Client::Opaque {
     }
   }
 
-  void BindReceivingFunc(ReceiveCallback cb) { cb_ = cb; }
+  ConnectStatus status() const noexcept {
+    return status_.load(std::memory_order_acquire);
+  }
 
-  bool is_connection_alive() const noexcept { return client_fd_ >= 0; }
-
-  Opaque() noexcept : fd_{-1}, client_fd_{-1} {}
+  explicit Opaque(ReceiveCallback cb) noexcept
+      : fd_{-1},
+        cb_{cb},
+        status_{ConnectStatus::kFDNotEstablished} {}
 
   ~Opaque() noexcept { Close(); }
 
  private:
-  int             fd_;
-  int             client_fd_;
-  ReceiveCallback cb_;
+  int                        fd_;
+  ReceiveCallback            cb_;
+  std::atomic<ConnectStatus> status_;
 };
 
 Client::Client(ReceiveCallback callback) noexcept
-    : opaque_{std::make_unique<Opaque>()} {
-  if (nullptr != opaque_) {
-    /// TODO: likely
+    : opaque_{std::make_unique<Opaque>(callback)} {
+  if (LIKELY(nullptr != opaque_)) {
     opaque_->StartupTcpSocket();
-    opaque_->BindReceivingFunc(callback);
   }
 }
 
 Client::~Client() noexcept {}
 
-bool Client::IsReady() const noexcept { return nullptr != opaque_; }
-
-Client::ConnectStatus Client::Connect(std::string_view host_name,
-                                      uint16_t         port) noexcept {
+bool Client::Connect(std::string_view host_name, uint16_t port) noexcept {
   if (nullptr == opaque_ ||
       (!opaque_->IsValid() && !opaque_->StartupTcpSocket())) {
-    return ConnectStatus::kFDNotEstablished;
+    return false;
   }
 
-  hostent *he = ::gethostbyname(host_name.data());
-  if (nullptr == he) {
-    return ConnectStatus::kNoSuchHostname;
-  }
-
-  sockaddr_in addr;
-  std::memset(&addr, 0, sizeof(addr));
-  std::memcpy(&addr.sin_addr, he->h_addr, he->h_length);
-  addr.sin_family = AF_INET;
-  addr.sin_port   = htons(port);
-
-  if (!opaque_->Connect(&addr)) {
-    return ConnectStatus::kFailedToConnect;
+  if (!opaque_->ConnectByHostname(host_name, port)) {
+    return false;
   }
 
   std::thread([=]() {
-    while (this->opaque_->is_connection_alive()) {
+    while (this->opaque_->status() == ConnectStatus::kConnecting) {
       if (!this->opaque_->Receive()) {
-        /// TODO: failed to receive
         break;
       }
     }
     this->opaque_->Close();
   }).detach();
 
-  return ConnectStatus::kSuccess;
+  return true;
 }
 
 void Client::Disconnect() noexcept {
-  if (nullptr != opaque_) {
-    /// TODO: likely
+  if (LIKELY(nullptr != opaque_)) {
     opaque_->Close();
   }
 }
 
-Client::ConnectStatus Client::IsConnecting() const noexcept {
-  if (nullptr == opaque_) {
-    /// TODO: unlikely
+Client::ConnectStatus Client::Status() const noexcept {
+  if (UNLIKELY(nullptr == opaque_)) {
     return ConnectStatus::kFDNotEstablished;
   }
-  return opaque_->is_connection_alive() ? ConnectStatus::kSuccess
-                                        : ConnectStatus::kDisconnected;
+  return opaque_->status();
 }
 
 }  // namespace jigentec

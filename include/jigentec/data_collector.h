@@ -40,13 +40,13 @@ class DataCollector {
 
   /**
    * @brief Construct a new Data Collector object.
-   * 
+   *
    */
   DataCollector() noexcept;
 
   /**
    * @brief Destroy the Data Collector object.
-   * 
+   *
    */
   ~DataCollector() noexcept;
 };
