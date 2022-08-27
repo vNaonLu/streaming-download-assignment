@@ -12,8 +12,12 @@ namespace jigentec {
  *
  */
 struct JigenTecPacket {
-  int32_t seqence_number;
-  int16_t payload_length;
+  uint32_t seqence_number;
+  uint16_t payload_length;
+
+  inline char *payload() noexcept {
+    return reinterpret_cast<char *>(this + sizeof(JigenTecPacket));
+  }
 };
 
 }  // namespace jigentec
