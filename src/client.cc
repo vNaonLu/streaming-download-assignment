@@ -55,10 +55,8 @@ class Client::Opaque {
     FD_ZERO(&rfds);
     FD_SET(fd_, &rfds);
 
-    /// TODO: select handle
     switch (::select(fd_ + 1, &rfds, nullptr, nullptr, &tv)) {
       case -1:
-        /// select failure
         [[fallthrough]];
       case 0:
         /// timeout
@@ -80,7 +78,6 @@ class Client::Opaque {
         auto len =
             ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
         if (len <= 0) {
-          /// TODO: receiving failure or disconnect
           return false;
         }
         recv_length += len;
@@ -145,7 +142,6 @@ Client::ConnectStatus Client::Connect(std::string_view host_name,
   std::thread([=]() {
     while (this->opaque_->is_connection_alive()) {
       if (!this->opaque_->Receive()) {
-        /// TODO: failed to receive
         break;
       }
     }
