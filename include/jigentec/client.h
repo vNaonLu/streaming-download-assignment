@@ -21,7 +21,7 @@ class Client {
   using ReceiveCallback = std::function<void(JigenTecPacket*)>;
 
   /**
-   * @brief The return value of function ::Connect.
+   * @brief The return value of function ::Status.
    *
    */
   enum class ConnectStatus {
@@ -49,9 +49,9 @@ class Client {
   void Disconnect() noexcept;
 
   /**
-   * @brief Indicate whether the connection is alive.
+   * @brief Indicate whether the client's status.
    *
-   * @return an enumeration of ::ConnectStatus.
+   * @return an enumeration in ::ConnectStatus.
    */
   ConnectStatus Status() const noexcept;
 
