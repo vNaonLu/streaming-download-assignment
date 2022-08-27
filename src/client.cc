@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <jigentec/client.h>
 #include <jigentec/compile.h>
 #include <netdb.h>
@@ -32,15 +33,6 @@ class Client::Opaque {
     }
   }
 
-  bool ConnectByIP(std::string_view host, uint16_t port) {
-    sockaddr_in addr;
-    std::memset(&addr, 0, sizeof(addr));
-    addr.sin_addr.s_addr = ::inet_addr(host.data());
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(port);
-    return Connect(reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
-  }
-
   bool ConnectByHostname(std::string_view hostname, uint16_t port) {
     hostent *he = ::gethostbyname(hostname.data());
     if (nullptr == he) {
@@ -60,20 +52,42 @@ class Client::Opaque {
     if (!IsValid()) {
       return false;
     }
-    if ((client_fd_ = ::connect(fd_, addr, length)) >= 0) {
-      status_.store(ConnectStatus::kConnecting, std::memory_order_release);
-      return true;
-    } else {
-      status_.store(ConnectStatus::kDestinationNotFound,
-                    std::memory_order_release);
-      return false;
+
+    int flag = ::fcntl(fd_, F_GETFL, 0);
+    ::fcntl(fd_, F_SETFL, flag | O_NONBLOCK);
+    ::connect(fd_, addr, length);
+
+    fd_set wfds;
+    FD_ZERO(&wfds);
+    FD_SET(fd_, &wfds);
+    /// wait up to 5 seconds.
+    auto tv    = timeval{0, 0};
+    tv.tv_sec  = 5;
+    tv.tv_usec = 0;
+
+    switch (::select(fd_ + 1, nullptr, &wfds, nullptr, &tv)) {
+      case -1:
+        status_.store(ConnectStatus::kUnknownError, std::memory_order_release);
+        break;
+
+      case 0:
+        status_.store(ConnectStatus::kConnectTimeout,
+                      std::memory_order_release);
+        break;
+
+      default:
+        status_.store(ConnectStatus::kConnecting, std::memory_order_release);
+        break;
     }
+    ::fcntl(fd_, F_SETFL, flag);
+    return status_.load(std::memory_order_relaxed) ==
+           ConnectStatus::kConnecting;
   }
 
   void Close() noexcept {
-    if (client_fd_ >= 0) {
-      close(client_fd_);
-      client_fd_ = -1;
+    if (fd_ >= 0) {
+      close(fd_);
+      fd_ = -1;
       status_.store(ConnectStatus::kNotConnect, std::memory_order_release);
     }
   }
@@ -94,8 +108,6 @@ class Client::Opaque {
       case -1:
         [[fallthrough]];
       case 0:
-        /// timeout
-        /// regard as the finish of download.
         return false;
 
       default:
@@ -123,15 +135,12 @@ class Client::Opaque {
     }
   }
 
-  bool is_connection_alive() const noexcept { return client_fd_ >= 0; }
-
   ConnectStatus status() const noexcept {
     return status_.load(std::memory_order_acquire);
   }
 
   explicit Opaque(ReceiveCallback cb) noexcept
       : fd_{-1},
-        client_fd_{-1},
         cb_{cb},
         status_{ConnectStatus::kFDNotEstablished} {}
 
@@ -139,7 +148,6 @@ class Client::Opaque {
 
  private:
   int                        fd_;
-  int                        client_fd_;
   ReceiveCallback            cb_;
   std::atomic<ConnectStatus> status_;
 };

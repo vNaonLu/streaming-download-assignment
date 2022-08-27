@@ -44,6 +44,8 @@ int main(int argc, char **argv) {
   }};
 
   /// create a new thread and request the file download.
+  std::cout << "(client) connecting to the host: " << opts->host << ":"
+            << opts->port << std::endl;
   if (!client.Connect(opts->host, opts->port)) {
     switch (client.Status()) {
       case Client::ConnectStatus::kDestinationNotFound:
@@ -55,6 +57,10 @@ int main(int argc, char **argv) {
         std::cout << "(error) cannot establish client." << std::endl;
         break;
 
+      case Client::ConnectStatus::kConnectTimeout:
+        std::cout << "(error) timeout." << std::endl;
+        break;
+
       default:
         std::cout << "(error) failed to connect host." << std::endl;
         break;
@@ -64,12 +70,12 @@ int main(int argc, char **argv) {
   std::cout << "(client) established a connection to the host: " << opts->host
             << ":" << opts->port << std::endl;
 
+  /// wait the download finishes.
   auto    timer   = Clock::now();
   int64_t elapsed = 0;
-  /// wait the download finishes.
   while (client.Status() == Client::ConnectStatus::kConnecting) {
     elapsed = std::chrono::duration_cast<Milli>(Clock::now() - timer).count();
-    std::cout << "\r\e[K(client) packet downloading (" << std::fixed
+    std::cout << "\r\e[K(client) packet downloading... (" << std::fixed
               << std::setprecision(1) << (static_cast<double>(elapsed) / 1000.0)
               << "s) " << std::flush;
     std::this_thread::yield();
@@ -79,11 +85,12 @@ int main(int argc, char **argv) {
   auto [data, length] = data_collection.Dump();
   if (nullptr != data && length > 0) {
     std::cout << std::endl
-              << "(client) finish the file download (" << std::fixed
+              << "(client) finish the download (" << std::fixed
               << std::setprecision(1) << (static_cast<double>(elapsed) / 1000.0)
               << "s)." << std::endl;
 
-    std::cout << "(client) received length: " << length << std::endl;
+    std::cout << "(client) received length: " << length << " byte(s)"
+              << std::endl;
     std::cout << "(client) SHA-256 checksum: " << SHA256()(data, length)
               << std::endl;
   } else {

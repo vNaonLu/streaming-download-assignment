@@ -29,6 +29,8 @@ class Client {
     kNotConnect,
     kFDNotEstablished,
     kDestinationNotFound,
+    kConnectTimeout,
+    kUnknownError
   };
 
   /**
