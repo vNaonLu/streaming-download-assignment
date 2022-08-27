@@ -25,12 +25,12 @@ class Client {
    *
    */
   enum class ConnectStatus {
-    kSuccess,
+    kConnecting,
+    kNotConnect,
     kFDNotEstablished,
-    kNoSuchHostname,
-    kFailedToConnect,
-    kDisconnected
+    kDestinationNotFound,
   };
+
   /**
    * @brief Startup a thread to connect with specified host and port.
    *
@@ -38,7 +38,7 @@ class Client {
    * @param port specify the target port.
    * @return indicate the status of connection.
    */
-  ConnectStatus Connect(std::string_view host_name, uint16_t port) noexcept;
+  bool Connect(std::string_view host_name, uint16_t port) noexcept;
 
   /**
    * @brief Close the connection from the host.
@@ -47,20 +47,11 @@ class Client {
   void Disconnect() noexcept;
 
   /**
-   * @brief Indicate whether the Client is ready. Should be invoked before
-   * connect the server.
+   * @brief Indicate whether the connection is alive.
    *
-   * @return true if the socket is established, false otherwise.
+   * @return an enumeration of ::ConnectStatus.
    */
-  bool IsReady() const noexcept;
-
-  /**
-   * @brief Indicate whether the connection is alive between host.
-   *
-   * @return One of ConnectStatus::kSuccess, ConnectStatus::kFDNotEstablished or
-   * ConnectStatus::kDisconnected.
-   */
-  ConnectStatus IsConnecting() const noexcept;
+  ConnectStatus Status() const noexcept;
 
   /**
    * @brief Construct a new Client object.
