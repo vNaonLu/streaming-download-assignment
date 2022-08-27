@@ -1,5 +1,6 @@
 // Copyright 2022, naon
 
+#include <jigentec/compile.h>
 #include <jigentec/data_collector.h>
 
 #include <unordered_map>
@@ -16,8 +17,7 @@ class DataCollector::Opaque {
 };
 
 DataCollector::DataCollector() noexcept : opaque_{std::make_unique<Opaque>()} {
-  if (nullptr != opaque_) {
-    /// TODO: likely
+  if (LIKELY(nullptr != opaque_)) {
     opaque_->combined    = nullptr;
     opaque_->file_length = 0;
     opaque_->received.clear();
@@ -29,8 +29,7 @@ DataCollector::~DataCollector() noexcept {}
 
 bool DataCollector::Store(JigenTecPacket *pack) noexcept {
   /// TODO: deal with large file!!
-  if (nullptr == opaque_ || opaque_->combined != nullptr) {
-    /// TODO: unlikely
+  if (UNLIKELY(nullptr == opaque_ || opaque_->combined != nullptr)) {
     return false;
   }
 
@@ -39,8 +38,7 @@ bool DataCollector::Store(JigenTecPacket *pack) noexcept {
   [[maybe_unused]] auto [it, inserted] = opaque_->received.emplace(
       std::make_pair(pack->seqence_number(), std::move(payload)));
 
-  if (inserted) {
-    /// TODO: likely
+  if (LIKELY(inserted)) {
     opaque_->file_length += pack->payload_length();
     opaque_->sequence.emplace_back(pack->seqence_number());
   }
@@ -49,8 +47,7 @@ bool DataCollector::Store(JigenTecPacket *pack) noexcept {
 }
 
 std::pair<char const *, size_t> DataCollector::Dump() noexcept {
-  if (nullptr == opaque_ || 0 == opaque_->file_length) {
-    /// TODO: unlikely
+  if (UNLIKELY(nullptr == opaque_ || 0 == opaque_->file_length)) {
     return std::make_pair(nullptr, 0);
   }
 
@@ -63,8 +60,7 @@ std::pair<char const *, size_t> DataCollector::Dump() noexcept {
     while (beg != opaque_->sequence.end()) {
       if (beg != opaque_->sequence.begin()) {
         /// check the completeness of data
-        if (*(beg) != *(beg - 1) + 1) {
-          /// TODO: unlikely
+        if (UNLIKELY(*(beg) != *(beg - 1) + 1)) {
           opaque_->file_length = 0;
           opaque_->combined    = 0;
           break;
@@ -72,8 +68,7 @@ std::pair<char const *, size_t> DataCollector::Dump() noexcept {
       }
 
       auto find = opaque_->received.find(*beg);
-      if (find != opaque_->received.end()) {
-        /// TODO: likely
+      if (LIKELY(find != opaque_->received.end())) {
         auto &buffer = find->second;
         std::memcpy(data, buffer.data(), buffer.size());
         data += buffer.size();

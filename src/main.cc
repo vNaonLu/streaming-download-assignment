@@ -1,6 +1,7 @@
 // Copyright 2022, naon
 
 #include <jigentec/client.h>
+#include <jigentec/compile.h>
 #include <jigentec/data_collector.h>
 #include <jigentec/jigentec.h>
 #include <sha256.h>
@@ -26,8 +27,7 @@ int main(int argc, char **argv) {
   /// construct a JigenTec Client object.
   /// and set the receiving callback.
   auto client = Client{[&](JigenTecPacket *pack) {
-    if (nullptr != pack) {
-      /// TODO: likely
+    if (LIKELY(nullptr != pack)) {
       data_collection.Store(pack);
     }
   }};
@@ -54,7 +54,6 @@ int main(int argc, char **argv) {
   /// dump binary and verify the checksum.
   auto [data, length] = data_collection.Dump();
   if (nullptr != data && length > 0) {
-    /// TODO: likely
     std::cout << std::endl
               << "(client) finish the file download (" << std::fixed
               << std::setprecision(1) << (static_cast<double>(elapsed) / 1000.0)

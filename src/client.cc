@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <jigentec/client.h>
+#include <jigentec/compile.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -109,8 +110,7 @@ class Client::Opaque {
 
 Client::Client(ReceiveCallback callback) noexcept
     : opaque_{std::make_unique<Opaque>()} {
-  if (nullptr != opaque_) {
-    /// TODO: likely
+  if (LIKELY(nullptr != opaque_)) {
     opaque_->StartupTcpSocket();
     opaque_->BindReceivingFunc(callback);
   }
@@ -156,15 +156,13 @@ Client::ConnectStatus Client::Connect(std::string_view host_name,
 }
 
 void Client::Disconnect() noexcept {
-  if (nullptr != opaque_) {
-    /// TODO: likely
+  if (LIKELY(nullptr != opaque_)) {
     opaque_->Close();
   }
 }
 
 Client::ConnectStatus Client::IsConnecting() const noexcept {
-  if (nullptr == opaque_) {
-    /// TODO: unlikely
+  if (UNLIKELY(nullptr == opaque_)) {
     return ConnectStatus::kFDNotEstablished;
   }
   return opaque_->is_connection_alive() ? ConnectStatus::kSuccess
