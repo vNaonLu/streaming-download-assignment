@@ -9,7 +9,7 @@
 
 #include <cassert>
 #include <iostream>
-#include <thread> // NOLINT [build/c++11]
+#include <thread>  // NOLINT [build/c++11]
 
 namespace jigentec {
 
@@ -45,10 +45,8 @@ class Client::Opaque {
   bool IsValid() const noexcept { return fd_ >= 0; }
 
   bool Receive() noexcept {
-    auto peak = JigenTecPacket{};
-
     /// wait up to 1 second.
-    auto tv = timeval{0, 0};
+    auto tv    = timeval{0, 0};
     tv.tv_sec  = 1;
     tv.tv_usec = 0;
 
@@ -62,7 +60,7 @@ class Client::Opaque {
         /// select failure
         [[fallthrough]];
       case 0:
-        /// timeout 
+        /// timeout
         /// regard as the finish of download.
         return false;
 
@@ -70,14 +68,15 @@ class Client::Opaque {
         break;
     }
 
+    auto pack = JigenTecPacket{};
+
     if (FD_ISSET(fd_, &rfds) &&
-        ::recv(fd_, &peak, sizeof(peak), MSG_PEEK) > 0) {
+        ::recv(fd_, pack.data(), sizeof(pack), MSG_PEEK) > 0) {
       uint32_t recv_length = 0;
-      uint32_t tot_bytes = sizeof(JigenTecPacket) + ntohs(peak.payload_length);
-      auto     buffer    = std::make_unique<char[]>(tot_bytes);
+      uint32_t tot_bytes =
+          pack.payload_length() + JigenTecPacket::kHeaderLength;
       while (recv_length != tot_bytes) {
-        auto len = ::recv(fd_, buffer.get() + recv_length,
-                          (tot_bytes - recv_length), 0);
+        auto len = ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
         if (len <= 0) {
           /// TODO: receiving failure or disconnect
           return false;
@@ -86,14 +85,11 @@ class Client::Opaque {
       }
 
       assert(nullptr != cb_);
-
-      /// transform the members in packets from big-endian to local
-      auto packet = reinterpret_cast<JigenTecPacket *>(buffer.get());
-      packet->seqence_number = ntohs(packet->seqence_number);
-      packet->payload_length = recv_length - sizeof(JigenTecPacket);
-      cb_(packet);
+      cb_(&pack);
+      return true;
+    } else {
+      return false;
     }
-    return true;
   }
 
   void BindReceivingFunc(ReceiveCallback cb) { cb_ = cb; }
