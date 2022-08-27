@@ -8,7 +8,6 @@ project(
 
 # compiler flags.
 set(CMAKE_CXX_STANDARD      17)
-set(CMAKE_CXX_FLAGS         "")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
 set(CMAKE_CXX_FLAGS_DEBUG   "-g")
 
@@ -41,4 +40,9 @@ target_link_libraries(
   PRIVATE ${${PROJECT_NAME}_LIBRARIES}
           pthread
           hash_lib
+)
+
+target_compile_options(
+  ${PROJECT_NAME}
+  PRIVATE "-Wall" "-Wextra" "-Werror"
 )
