@@ -76,7 +76,8 @@ class Client::Opaque {
       uint32_t tot_bytes =
           pack.payload_length() + JigenTecPacket::kHeaderLength;
       while (recv_length != tot_bytes) {
-        auto len = ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
+        auto len =
+            ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
         if (len <= 0) {
           /// TODO: receiving failure or disconnect
           return false;

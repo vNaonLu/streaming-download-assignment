@@ -5,7 +5,7 @@
 #include <jigentec/jigentec.h>
 #include <sha256.h>
 
-#include <chrono>
+#include <chrono>  // NOLINT [build/c++11]
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
               << "s)." << std::endl;
 
     std::cout << "(client) received length: " << length << std::endl;
-    std::cout << "(client) SHA-256 checksum: " << SHA256{}(data, length)
+    std::cout << "(client) SHA-256 checksum: " << SHA256()(data, length)
               << std::endl;
   } else {
     std::cout << "(error) an error occurred while downloading :(" << std::endl;

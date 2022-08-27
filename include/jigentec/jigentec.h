@@ -6,10 +6,9 @@
 #include <arpa/inet.h>
 
 #include <cstdint>
+#include <iostream>
 #include <limits>
 #include <memory>
-
-#include <iostream>
 
 namespace jigentec {
 
@@ -22,8 +21,14 @@ class JigenTecPacket {
   inline constexpr static size_t kHeaderLength =
       sizeof(uint32_t) + sizeof(uint16_t);
 
+  inline constexpr static size_t kMaximumPayloadLength =
+      std::numeric_limits<uint16_t>::max();
+
+  inline constexpr static size_t kMaximumPacketLength =
+      kHeaderLength + kMaximumPayloadLength;
+
  private:
-  char buffer_[std::numeric_limits<uint16_t>::max() + kHeaderLength];
+  char buffer_[kMaximumPacketLength];
 
  public:
   inline char *data() noexcept { return buffer_; }
@@ -37,7 +42,8 @@ class JigenTecPacket {
   }
 
   inline char *payload() noexcept {
-    return reinterpret_cast<char *>(buffer_ + sizeof(uint32_t) + sizeof(uint16_t));
+    return reinterpret_cast<char *>(buffer_ + sizeof(uint32_t) +
+                                    sizeof(uint16_t));
   }
 };
 
