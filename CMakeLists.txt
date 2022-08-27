@@ -28,6 +28,9 @@ add_executable(
   ${${PROJECT_NAME}_SOURCE}
 )
 
+# build third party
+add_subdirectory(third_party)
+
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE ${${PROJECT_NAME}_INCLUDES}
@@ -37,4 +40,5 @@ target_link_libraries(
   ${PROJECT_NAME}
   PRIVATE ${${PROJECT_NAME}_LIBRARIES}
           pthread
+          hash_lib
 )

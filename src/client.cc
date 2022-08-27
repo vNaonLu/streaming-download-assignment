@@ -9,71 +9,100 @@
 
 #include <cassert>
 #include <iostream>
-#include <thread>
+#include <thread>  // NOLINT [build/c++11]
 
 namespace jigentec {
 
 class Client::Opaque {
  public:
   bool StartupTcpSocket() noexcept {
-    fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (!IsValid()) {
-      /// Socket failed to be established.
-      return false;
+    if (IsValid()) {
+      /// socket is already established
+      return true;
     }
-    return true;
+
+    fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
+    return IsValid();
   }
 
   bool Connect(struct sockaddr_in *addr) {
-    return is_connection_alive_ =
-               (IsValid() && ::connect(fd_, (sockaddr *)addr, sizeof(addr)));
+    if (!IsValid()) {
+      return false;
+    }
+    client_fd_ =
+        ::connect(fd_, reinterpret_cast<sockaddr *>(addr), sizeof(sockaddr_in));
+
+    return client_fd_ >= 0;
   }
 
   void Close() noexcept {
-    if (fd_ >= 0) {
-      close(fd_);
-      fd_                  = -1;
-      is_connection_alive_ = false;
+    if (client_fd_ >= 0) {
+      close(client_fd_);
+      client_fd_ = -1;
     }
   }
 
   bool IsValid() const noexcept { return fd_ >= 0; }
 
   bool Receive() noexcept {
-    JigenTecPacket peak;
-    if (::recv(fd_, &peak, sizeof(peak), MSG_PEEK | MSG_DONTWAIT) < 0) {
-      switch (errno) {
-        case EWOULDBLOCK:  /// or EAGAIN
-          return true;
-        default:
-          is_connection_alive_ = false;
-          return false;
-      }
+    /// wait up to 1 second.
+    auto tv    = timeval{0, 0};
+    tv.tv_sec  = 1;
+    tv.tv_usec = 0;
+
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(fd_, &rfds);
+
+    /// TODO: select handle
+    switch (::select(fd_ + 1, &rfds, nullptr, nullptr, &tv)) {
+      case -1:
+        /// select failure
+        [[fallthrough]];
+      case 0:
+        /// timeout
+        /// regard as the finish of download.
+        return false;
+
+      default:
+        break;
     }
 
-    auto tot_bytes = sizeof(JigenTecPacket) + peak.payload_length;
-    auto buffer    = std::make_unique<char[]>(tot_bytes);
-    if (::recv(fd_, buffer.get(), tot_bytes, 0) < 0) {
-      /// TODO: receiving failure
+    auto pack = JigenTecPacket{};
+
+    if (FD_ISSET(fd_, &rfds) &&
+        ::recv(fd_, pack.data(), sizeof(pack), MSG_PEEK) > 0) {
+      uint32_t recv_length = 0;
+      uint32_t tot_bytes =
+          pack.payload_length() + JigenTecPacket::kHeaderLength;
+      while (recv_length != tot_bytes) {
+        auto len = ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
+        if (len <= 0) {
+          /// TODO: receiving failure or disconnect
+          return false;
+        }
+        recv_length += len;
+      }
+
+      assert(nullptr != cb_);
+      cb_(&pack);
+      return true;
+    } else {
       return false;
     }
-
-    assert(nullptr != cb_);
-    cb_((JigenTecPacket *)buffer.get());
-    return true;
   }
 
   void BindReceivingFunc(ReceiveCallback cb) { cb_ = cb; }
 
-  bool is_connection_alive() const noexcept { return is_connection_alive_; }
+  bool is_connection_alive() const noexcept { return client_fd_ >= 0; }
 
-  Opaque() noexcept : is_connection_alive_{false}, fd_{-1} {}
+  Opaque() noexcept : fd_{-1}, client_fd_{-1} {}
 
   ~Opaque() noexcept { Close(); }
 
  private:
-  bool            is_connection_alive_;
   int             fd_;
+  int             client_fd_;
   ReceiveCallback cb_;
 };
 
@@ -102,12 +131,9 @@ Client::ConnectStatus Client::Connect(std::string_view host_name,
     return ConnectStatus::kNoSuchHostname;
   }
 
-  /// print out the ip to required hostname
-  /// std::cout << inet_ntoa(*(in_addr *)he->h_addr_list[0]) << std::endl;
-
   sockaddr_in addr;
   std::memset(&addr, 0, sizeof(addr));
-  std::memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+  std::memcpy(&addr.sin_addr, he->h_addr, he->h_length);
   addr.sin_family = AF_INET;
   addr.sin_port   = htons(port);
 
@@ -117,7 +143,10 @@ Client::ConnectStatus Client::Connect(std::string_view host_name,
 
   std::thread([=]() {
     while (this->opaque_->is_connection_alive()) {
-      this->opaque_->Receive();
+      if (!this->opaque_->Receive()) {
+        /// TODO: failed to receive
+        break;
+      }
     }
     this->opaque_->Close();
   }).detach();
@@ -126,7 +155,6 @@ Client::ConnectStatus Client::Connect(std::string_view host_name,
 }
 
 void Client::Disconnect() noexcept {
-  // re-startup the file descriptor
   if (nullptr != opaque_) {
     /// TODO: likely
     opaque_->Close();

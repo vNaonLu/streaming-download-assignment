@@ -69,7 +69,7 @@ class Client {
    * Note for the argument in the callback will be destructed so ensure the data
    * is fully copied.
    */
-  Client(ReceiveCallback callback) noexcept;
+  explicit Client(ReceiveCallback callback) noexcept;
 
   /**
    * @brief Destroy the Client object.
