@@ -4,6 +4,7 @@
 #define INCLUDE_JIGENTEC_DATA_COLLECTOR_H_
 
 #include <memory>
+#include <utility>
 
 #include "./jigentec.h"
 
