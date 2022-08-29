@@ -1,6 +1,7 @@
-# JigenTec Streaming Coding Assignement
+# Streaming Download Assignment
+[![githubbuild](https://github.com/vNaonLu/streaming-download-assignment/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/vNaonLu/streaming-download-assignment/actions)
 
-This project is about the JigenTec's coding assignment which requires a download from specified host and verify the checksum of file.
+This project is about the coding assignment which requires a download from specified host and verify the checksum of file.
 
 ## Getting Started
 
@@ -20,9 +21,9 @@ This describes the build process using cmake. As pre-requisites, you'll need git
 
 ``` sh
 # Check out the porject.
-$ git clone https://github.com/vNaonLu/JigenTec-coding-assignment.git jigentec-assignment
+$ git clone https://github.com/vNaonLu/streaming-download-assignment.git assignment
 # Go to the project root directory.
-$ cd jigentec-assignment
+$ cd assignment
 # Check out the submodules.
 $ git submodule update --init --recursive
 # Generate build system files with cmake
@@ -34,32 +35,32 @@ $ cmake --build "build"
 The build directory should now look something like this:
 
 ```
-+/jigentec-assignment
++/streaming-assignment
 |
 +-+/build
   |
-  +-/jigentec-client
+  +-/client
   |
   ...
 ```
 
 ## Usage
 
-There is exact one executable `jigentec-client` in the building directory, just type the below command in the project root directory:
+There is exact one executable `client` in the building directory, just type the below command in the project root directory:
 
 ``` sh
 # you may need to execute with root permission.
-$ ./build/jigentec-client <host> <port>
+$ ./build/client <host> <port>
 ```
 
 And the output may looks like:
 
 ``` sh
-$ ./build/jigentec-client assignment.jigentec.com 49152
-(client) connecting to the host: assignment.jigentec.com:49152
-(client) established a connection to the host: assignment.jigentec.com:49152
+$ ./build/client some.url.com 12345
+(client) connecting to the host: some.url.com:12345
+(client) established a connection to the host: some.url.com:12345
 (client) packet downloading... (14.3s) 
 (client) finish the download (14.3s).
 (client) received length: 2906111 byte(s)
-(client) SHA-256 checksum: 093afcce35604b2ef9119f39981073e7ccd3530b569325fc9f6b2c40925b4e6d
+(client) SHA-256 checksum: <sha...>
 ```

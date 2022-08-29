@@ -1,0 +1,28 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main", "modify-project-name" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v1
+    - run: git submodule update --init --recursive
+    - run: pip install cpplint
+    
+    - name: Check cpplint
+      run:  cpplint ./include/assignment/* ./src/*
+    
+    - name: Configure CMake
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      
+    - name: Build
+      run: cmake --build build -j
+      

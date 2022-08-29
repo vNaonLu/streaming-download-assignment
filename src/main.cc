@@ -1,9 +1,9 @@
 // Copyright 2022, naon
 
-#include <jigentec/client.h>
-#include <jigentec/compile.h>
-#include <jigentec/data_collector.h>
-#include <jigentec/jigentec.h>
+#include <assignment/client.h>
+#include <assignment/compile.h>
+#include <assignment/data_collector.h>
+#include <assignment/protocol.h>
 #include <sha256.h>
 
 #include <chrono>  // NOLINT [build/c++11]
@@ -13,9 +13,9 @@
 #include <thread>  // NOLINT [build/c++11]
 #include <vector>
 
-using jigentec::Client;
-using jigentec::DataCollector;
-using jigentec::JigenTecPacket;
+using assignment::Client;
+using assignment::DataCollector;
+using assignment::Packet;
 
 using Clock = std::chrono::high_resolution_clock;
 using Milli = std::chrono::milliseconds;
@@ -35,9 +35,9 @@ int main(int argc, char **argv) {
   }
 
   DataCollector data_collection;
-  /// construct a JigenTec Client object.
+  /// construct a Client object.
   /// and set the receiving callback.
-  auto client = Client{[&](JigenTecPacket *pack) {
+  auto client = Client{[&](Packet *pack) {
     if (LIKELY(nullptr != pack)) {
       data_collection.Store(pack);
     }
@@ -120,5 +120,5 @@ std::unique_ptr<Optional> Parse(int argc, char **argv) {
 }
 
 void Usage() noexcept {
-  std::cout << "Usage: jigentec-client <host> <port>" << std::endl;
+  std::cout << "Usage: client <host> <port>" << std::endl;
 }

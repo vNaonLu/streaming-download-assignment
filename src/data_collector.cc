@@ -1,13 +1,14 @@
 // Copyright 2022, naon
 
-#include <jigentec/compile.h>
-#include <jigentec/data_collector.h>
+#include <assignment/compile.h>
+#include <assignment/data_collector.h>
 
+#include <algorithm>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
 
-namespace jigentec {
+namespace assignment {
 
 class DataCollector::Opaque {
  public:
@@ -28,7 +29,7 @@ DataCollector::DataCollector() noexcept : opaque_{std::make_unique<Opaque>()} {
 
 DataCollector::~DataCollector() noexcept {}
 
-bool DataCollector::Store(JigenTecPacket *pack) noexcept {
+bool DataCollector::Store(Packet *pack) noexcept {
   /// TODO: deal with large file!!
   if (UNLIKELY(nullptr == opaque_ || opaque_->combined != nullptr)) {
     return false;
@@ -88,4 +89,4 @@ std::pair<char const *, size_t> DataCollector::Dump() noexcept {
   return std::make_pair(opaque_->combined.get(), opaque_->file_length);
 }
 
-}  // namespace jigentec
+}  // namespace assignment

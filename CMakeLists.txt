@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(
-  jigentec-client
+  streaming-coding-assignment
   LANGUAGES CXX
   VERSION 0.1
 )
@@ -23,7 +23,7 @@ file(GLOB ${PROJECT_NAME}_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 # create an executable target.
 add_executable(
-  ${PROJECT_NAME}
+  client
   ${${PROJECT_NAME}_SOURCE}
 )
 
@@ -31,18 +31,18 @@ add_executable(
 add_subdirectory(third_party)
 
 target_include_directories(
-  ${PROJECT_NAME}
+  client
   PRIVATE ${${PROJECT_NAME}_INCLUDES}
 )
 
 target_link_libraries(
-  ${PROJECT_NAME}
+  client
   PRIVATE ${${PROJECT_NAME}_LIBRARIES}
           pthread
           hash_lib
 )
 
 target_compile_options(
-  ${PROJECT_NAME}
+  client
   PRIVATE "-Wall" "-Wextra" "-Werror"
 )

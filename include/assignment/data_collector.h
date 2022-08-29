@@ -1,17 +1,17 @@
 // Copyright 2022, naon
 
-#ifndef INCLUDE_JIGENTEC_DATA_COLLECTOR_H_
-#define INCLUDE_JIGENTEC_DATA_COLLECTOR_H_
+#ifndef INCLUDE_ASSIGNMENT_DATA_COLLECTOR_H_
+#define INCLUDE_ASSIGNMENT_DATA_COLLECTOR_H_
 
 #include <memory>
 #include <utility>
 
-#include "./jigentec.h"
+#include "./protocol.h"
 
-namespace jigentec {
+namespace assignment {
 
 /**
- * @brief The data collector receives packets from JigenTec and combines them to
+ * @brief The data collector receives packets and combines them to
  * a single buffer.
  *
  */
@@ -28,7 +28,7 @@ class DataCollector {
    * @param packet specify the target packet.
    * @return ture if the store operation run successfully, false otherwise.
    */
-  bool Store(JigenTecPacket *packet) noexcept;
+  bool Store(Packet *packet) noexcept;
 
   /**
    * @brief Combine the packets which are stored before and dump the binary.
@@ -51,6 +51,6 @@ class DataCollector {
   ~DataCollector() noexcept;
 };
 
-}  // namespace jigentec
+}  // namespace assignment
 
-#endif  // INCLUDE_JIGENTEC_DATA_COLLECTOR_H_
+#endif  // INCLUDE_ASSIGNMENT_DATA_COLLECTOR_H_
