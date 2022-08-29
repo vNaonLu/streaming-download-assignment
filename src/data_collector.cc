@@ -3,6 +3,7 @@
 #include <jigentec/compile.h>
 #include <jigentec/data_collector.h>
 
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 

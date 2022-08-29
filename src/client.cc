@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <thread>  // NOLINT [build/c++11]
 
