@@ -2,20 +2,22 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main", "ci-pipeline" ]
+    branches: [ "main", "modify-project-name" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
   build:
 
-    runs-on: Debian:11.4
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v1
+    - run: pip install cpplint
     
     - name: Check cpplint
-      run: cpplint ./include/assignment/* ./src/*
+      run:  cpplint ./include/assignment/* ./src/*
     
     - name: Configure CMake
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
