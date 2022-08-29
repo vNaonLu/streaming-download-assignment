@@ -1,10 +1,10 @@
 // Copyright 2022, naon
 
 #include <arpa/inet.h>
+#include <assignment/client.h>
+#include <assignment/compile.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <jigentec/client.h>
-#include <jigentec/compile.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -15,7 +15,7 @@
 #include <iostream>
 #include <thread>  // NOLINT [build/c++11]
 
-namespace jigentec {
+namespace assignment {
 
 class Client::Opaque {
  public:
@@ -115,12 +115,11 @@ class Client::Opaque {
         break;
     }
 
-    auto pack = JigenTecPacket{};
+    auto pack = Packet{};
     if (FD_ISSET(fd_, &rfds) &&
         ::recv(fd_, pack.data(), sizeof(pack), MSG_PEEK) > 0) {
       uint32_t recv_length = 0;
-      uint32_t tot_bytes =
-          pack.payload_length() + JigenTecPacket::kHeaderLength;
+      uint32_t tot_bytes   = pack.payload_length() + Packet::kHeaderLength;
       while (recv_length != tot_bytes) {
         auto len =
             ::read(fd_, pack.data() + recv_length, (tot_bytes - recv_length));
@@ -141,9 +140,7 @@ class Client::Opaque {
   }
 
   explicit Opaque(ReceiveCallback cb) noexcept
-      : fd_{-1},
-        cb_{cb},
-        status_{ConnectStatus::kFDNotEstablished} {}
+      : fd_{-1}, cb_{cb}, status_{ConnectStatus::kFDNotEstablished} {}
 
   ~Opaque() noexcept { Close(); }
 
@@ -197,4 +194,4 @@ Client::ConnectStatus Client::Status() const noexcept {
   return opaque_->status();
 }
 
-}  // namespace jigentec
+}  // namespace assignment

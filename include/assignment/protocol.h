@@ -1,7 +1,7 @@
 // Copyright 2022, naon
 
-#ifndef INCLUDE_JIGENTEC_JIGENTEC_H_
-#define INCLUDE_JIGENTEC_JIGENTEC_H_
+#ifndef INCLUDE_ASSIGNMENT_PROTOCOL_H_
+#define INCLUDE_ASSIGNMENT_PROTOCOL_H_
 
 #include <arpa/inet.h>
 
@@ -10,13 +10,13 @@
 #include <limits>
 #include <memory>
 
-namespace jigentec {
+namespace assignment {
 
 /**
- * @brief The JigenTec's file transfer protocol
+ * @brief The file transfer protocol
  *
  */
-class JigenTecPacket {
+class Packet {
  public:
   inline constexpr static size_t kHeaderLength =
       sizeof(uint32_t) + sizeof(uint16_t);
@@ -40,7 +40,7 @@ class JigenTecPacket {
 
   /**
    * @brief Obtain the sequence number of this packet.
-   * 
+   *
    * @return a sequencet number and may not be consecutive.
    */
   inline uint32_t seqence_number() noexcept {
@@ -49,7 +49,7 @@ class JigenTecPacket {
 
   /**
    * @brief Indicate the size of payload.
-   * 
+   *
    * @return size of payload.
    */
   inline uint16_t payload_length() noexcept {
@@ -58,7 +58,7 @@ class JigenTecPacket {
 
   /**
    * @brief Get the payload binary.
-   * 
+   *
    * @return the char binary.
    */
   inline char *payload() noexcept {
@@ -67,6 +67,6 @@ class JigenTecPacket {
   }
 };
 
-}  // namespace jigentec
+}  // namespace assignment
 
-#endif  // INCLUDE_JIGENTEC_JIGENTEC_H_
+#endif  // INCLUDE_ASSIGNMENT_PROTOCOL_H_

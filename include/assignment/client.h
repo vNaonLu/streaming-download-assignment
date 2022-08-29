@@ -1,16 +1,16 @@
 // Copyright 2022, naon
 
-#ifndef INCLUDE_JIGENTEC_CLIENT_H_
-#define INCLUDE_JIGENTEC_CLIENT_H_
+#ifndef INCLUDE_ASSIGNMENT_CLIENT_H_
+#define INCLUDE_ASSIGNMENT_CLIENT_H_
 
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string_view>
 
-#include "./jigentec.h"
+#include "./protocol.h"
 
-namespace jigentec {
+namespace assignment {
 
 /**
  * @brief The unix TCP socket client class.
@@ -18,7 +18,7 @@ namespace jigentec {
  */
 class Client {
  public:
-  using ReceiveCallback = std::function<void(JigenTecPacket*)>;
+  using ReceiveCallback = std::function<void(Packet*)>;
 
   /**
    * @brief The return value of function ::Status.
@@ -75,6 +75,6 @@ class Client {
   std::unique_ptr<Opaque> opaque_;
 };
 
-}  // namespace jigentec
+}  // namespace assignment
 
-#endif  // INCLUDE_JIGENTEC_CLIENT_H_
+#endif  // INCLUDE_ASSIGNMENT_CLIENT_H_
