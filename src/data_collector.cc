@@ -3,6 +3,7 @@
 #include <assignment/compile.h>
 #include <assignment/data_collector.h>
 
+#include <algorithm>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
