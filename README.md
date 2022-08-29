@@ -1,4 +1,5 @@
 # Streaming Download Assignment
+[![githubbuild](https://github.com/vNaonLu/streaming-download-assignment/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/vNaonLu/streaming-download-assignment/actions)
 
 This project is about the coding assignment which requires a download from specified host and verify the checksum of file.
 
