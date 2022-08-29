@@ -2,7 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main", "modify-project-name" ]
+    branches: [ "main", "ci-pipeline" ]
   pull_request:
     branches: [ "main" ]
 
