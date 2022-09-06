@@ -64,7 +64,7 @@ std::pair<char const *, size_t> DataCollector::Dump() noexcept {
         /// check the completeness of data
         if (UNLIKELY(*(beg) != *(beg - 1) + 1)) {
           opaque_->file_length = 0;
-          opaque_->combined    = 0;
+          opaque_->combined    = nullptr;
           break;
         }
       }
@@ -76,7 +76,7 @@ std::pair<char const *, size_t> DataCollector::Dump() noexcept {
         data += buffer.size();
       } else {
         opaque_->file_length = 0;
-        opaque_->combined    = 0;
+        opaque_->combined    = nullptr;
         break;
       }
 
